@@ -654,6 +654,7 @@ struct ext_profile {
 	char *uuid;
 	char *service;
 	char *role;
+	char *adapter_name;
 
 	char *record;
 	char *(*get_record)(struct ext_profile *ext, struct ext_io *l2cap,
@@ -2319,6 +2320,12 @@ static int parse_ext_opt(struct ext_profile *ext, const char *key,
 		dbus_message_iter_get_basic(value, &str);
 		free(ext->service);
 		ext->service = bt_name2string(str);
+	} else if (strcasecmp(key, "AdapterName") == 0) {
+		if (type != DBUS_TYPE_STRING)
+			return -EINVAL;
+		dbus_message_iter_get_basic(value, &str);
+		g_free(ext->adapter_name);
+		ext->adapter_name = g_strdup(str);
 	}
 
 	return 0;
@@ -2426,6 +2433,22 @@ static struct ext_profile *create_ext(const char *owner, const char *path,
 
 	ext_profiles = g_slist_append(ext_profiles, ext);
 
+	if (ext->adapter_name) {
+		DBG("Searching adapter \"%s\"", ext->adapter_name);
+	
+		if(strlen(ext->adapter_name) > 3) {
+			int id = atoi(ext->adapter_name + 3);
+			struct btd_adapter *adapter = adapter_find_by_id(id);
+			if (adapter) {
+				adapter_add_profile(adapter, &ext->p);
+				return ext;	
+			}
+		}
+
+		error("Adapter \"%s\" not found", ext->adapter_name);
+		return ext;
+	} 
+	
 	adapter_foreach(adapter_add_profile, &ext->p);
 
 	return ext;
@@ -2452,6 +2475,7 @@ static void remove_ext(struct ext_profile *ext)
 	g_free(ext->role);
 	g_free(ext->path);
 	g_free(ext->record);
+	g_free(ext->adapter_name);
 
 	g_free(ext);
 }

@@ -121,6 +121,11 @@ void RegisterProfile(object profile, string uuid, dict options)
 	:uint16 Features:
 
 		Profile features (for SDP record)
+		
+	:string AdapterName:
+
+		Only register the profile on this adapter (e.g. hci0).
+		By default it will be registered on all available adapters.
 
 	Possible errors:
 
